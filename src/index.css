@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { @apply m-0 p-0 box-border; }
+  html { scroll-behavior: smooth; }
+  body {
+    @apply bg-dark text-white font-sans overflow-x-hidden;
+    background-image: radial-gradient(ellipse at 20% 50%, rgba(0, 119, 182, 0.08) 0%, transparent 60%),
+                      radial-gradient(ellipse at 80% 50%, rgba(0, 180, 216, 0.05) 0%, transparent 60%);
+  }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: #0a0a1a; }
+  ::-webkit-scrollbar-thumb { background: #1a1a3e; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #0077b6; }
+
+  input[type='range']::-webkit-slider-thumb {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #00b4d8;
+    cursor: pointer;
+    border: 2px solid #0a0a1a;
+    box-shadow: 0 0 15px rgba(0, 180, 216, 0.4);
+  }
+  input[type='range']::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #00b4d8;
+    cursor: pointer;
+    border: 2px solid #0a0a1a;
+    box-shadow: 0 0 15px rgba(0, 180, 216, 0.4);
+  }
+}
+
+@layer components {
+  .glass {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl;
+  }
+  .glass-strong {
+    @apply bg-dark-3/80 backdrop-blur-xl border border-white/10 rounded-2xl;
+  }
+  .glass-card {
+    @apply bg-white/[0.03] backdrop-blur-lg border border-white/[0.06] rounded-xl
+           hover:bg-white/[0.06] hover:border-white/[0.12] transition-all duration-500;
+  }
+  .glow { box-shadow: 0 0 30px rgba(0, 180, 216, 0.15); }
+  .glow-strong { box-shadow: 0 0 50px rgba(0, 180, 216, 0.25); }
+  .text-gradient { @apply bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500; }
+  .section-title {
+    @apply text-4xl md:text-5xl font-bold text-gradient mb-4;
+  }
+  .section-subtitle {
+    @apply text-lg text-white/60 max-w-2xl mx-auto;
+  }
+  .bird-card {
+    @apply glass-card p-6 cursor-pointer relative overflow-hidden;
+  }
+  .bird-card.selected {
+    @apply border-primary/50 ring-1 ring-primary/30 glow;
+  }
+  .btn-simular {
+    @apply px-6 py-2.5 rounded-lg font-medium text-sm transition-all duration-300
+           bg-gradient-to-r from-primary to-secondary text-white
+           hover:shadow-lg hover:shadow-primary/20 active:scale-95;
+  }
+  .btn-simular:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+  .stat-value {
+    @apply text-2xl md:text-3xl font-bold font-mono;
+  }
+  .stat-label {
+    @apply text-xs text-white/50 uppercase tracking-wider;
+  }
+}
+
+@layer utilities {
+  .perspective-1000 { perspective: 1000px; }
+  .preserve-3d { transform-style: preserve-3d; }
+  .backface-hidden { backface-visibility: hidden; }
+}
