@@ -47,6 +47,12 @@ export default function Navbar() {
               {l.label}
             </a>
           ))}
+          <a
+            href="#/presentacion"
+            className="ml-4 px-4 py-2 text-sm bg-gradient-to-r from-cyan-500 to-green-500 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+          >
+            📊 Presentación
+          </a>
         </div>
 
         <button
@@ -82,6 +88,13 @@ export default function Navbar() {
                 {l.label}
               </a>
             ))}
+            <a
+              href="#/presentacion"
+              onClick={() => setMobileOpen(false)}
+              className="block px-4 py-3 text-sm text-cyan-400 font-semibold hover:bg-white/5"
+            >
+              📊 Ver Presentación
+            </a>
           </motion.div>
         )}
       </AnimatePresence>
