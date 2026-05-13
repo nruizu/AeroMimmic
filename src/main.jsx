@@ -5,17 +5,22 @@ import Presentation from './components/Presentation'
 import './index.css'
 
 function Router() {
-  const [route, setRoute] = useState(window.location.hash.slice(1) || '/')
+  const getRoute = () => window.location.hash.slice(1) || window.location.pathname || '/'
+  const [route, setRoute] = useState(getRoute())
 
   useEffect(() => {
-    const handleHashChange = () => {
-      setRoute(window.location.hash.slice(1) || '/')
+    const handleRouteChange = () => {
+      setRoute(getRoute())
     }
-    window.addEventListener('hashchange', handleHashChange)
-    return () => window.removeEventListener('hashchange', handleHashChange)
+    window.addEventListener('hashchange', handleRouteChange)
+    window.addEventListener('popstate', handleRouteChange)
+    return () => {
+      window.removeEventListener('hashchange', handleRouteChange)
+      window.removeEventListener('popstate', handleRouteChange)
+    }
   }, [])
 
-  if (route === '/presentacion') {
+  if (route === '/presentacion' || route === '/presentation') {
     return <Presentation />
   }
 

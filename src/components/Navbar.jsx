@@ -48,10 +48,10 @@ export default function Navbar() {
             </a>
           ))}
           <a
-            href="#/presentacion"
-            className="ml-4 px-4 py-2 text-sm bg-gradient-to-r from-cyan-500 to-green-500 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+            href="/presentacion"
+            className="ml-4 px-4 py-2 text-sm rounded-lg font-semibold border border-white/15 text-white/80 bg-white/5 hover:bg-white/10 hover:text-white transition-colors"
           >
-            📊 Presentación
+            Presentación
           </a>
         </div>
 
@@ -89,11 +89,11 @@ export default function Navbar() {
               </a>
             ))}
             <a
-              href="#/presentacion"
+              href="/presentacion"
               onClick={() => setMobileOpen(false)}
-              className="block px-4 py-3 text-sm text-cyan-400 font-semibold hover:bg-white/5"
+              className="block px-4 py-3 text-sm text-white/80 font-semibold hover:bg-white/5"
             >
-              📊 Ver Presentación
+              Presentación
             </a>
           </motion.div>
         )}
