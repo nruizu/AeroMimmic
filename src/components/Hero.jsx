@@ -4,75 +4,94 @@ import { OrbitControls, PerspectiveCamera } from '@react-three/drei'
 import { motion } from 'framer-motion'
 import * as THREE from 'three'
 
-function ShinkansenModel() {
-  const groupRef = useRef(null)
-  useFrame((_, delta) => {
-    if (groupRef.current) {
-      groupRef.current.rotation.y += delta * 0.25
+const SEGMENTS = 48
+const RING_COUNT = 16
+
+const KINGFISHER_PROFILE = [
+  [0, 0], [0.15, 0.003], [0.3, 0.008], [0.5, 0.015], [0.7, 0.025],
+  [0.9, 0.037], [1.1, 0.05], [1.3, 0.065], [1.5, 0.082], [1.7, 0.1],
+  [1.9, 0.118], [2.1, 0.136], [2.3, 0.155], [2.5, 0.174], [2.7, 0.194],
+  [2.9, 0.214],
+]
+
+const SHINKANSEN_PROFILE = [
+  [0, 0], [0.18, 0.028], [0.36, 0.062], [0.55, 0.1], [0.75, 0.14],
+  [0.95, 0.18], [1.15, 0.215], [1.35, 0.245], [1.55, 0.27], [1.75, 0.288],
+  [1.95, 0.3], [2.15, 0.305], [2.35, 0.308], [2.55, 0.31], [2.75, 0.31],
+  [2.9, 0.31],
+]
+
+function profileToPoints(profile, lengthScale, radiusScale) {
+  return profile.map(([x, y]) => new THREE.Vector2(y * radiusScale, x * lengthScale))
+}
+
+function MorphingNose() {
+  const meshRef = useRef(null)
+  const labelRef = useRef(null)
+
+  const { geometry, posA, posB, posLive } = useMemo(() => {
+    const LENGTH = 0.9
+    const RADIUS = 1.6
+    const ptsA = profileToPoints(KINGFISHER_PROFILE, LENGTH, RADIUS)
+    const ptsB = profileToPoints(SHINKANSEN_PROFILE, LENGTH, RADIUS)
+    const gA = new THREE.LatheGeometry(ptsA, SEGMENTS)
+    const gB = new THREE.LatheGeometry(ptsB, SEGMENTS)
+
+    const a = new Float32Array(gA.attributes.position.array)
+    const b = new Float32Array(gB.attributes.position.array)
+
+    const liveGeo = new THREE.LatheGeometry(ptsA, SEGMENTS)
+    const live = liveGeo.attributes.position.array
+    liveGeo.computeVertexNormals()
+
+    gA.dispose()
+    gB.dispose()
+
+    return { geometry: liveGeo, posA: a, posB: b, posLive: live }
+  }, [])
+
+  const colorRef = useRef(new THREE.Color('#00b4d8'))
+
+  useFrame((state) => {
+    const t = (Math.sin(state.clock.elapsedTime * 0.45) + 1) / 2
+    const eased = t * t * (3 - 2 * t)
+
+    for (let i = 0; i < posLive.length; i++) {
+      posLive[i] = posA[i] * (1 - eased) + posB[i] * eased
+    }
+    geometry.attributes.position.needsUpdate = true
+
+    const cA = new THREE.Color('#00b4d8')
+    const cB = new THREE.Color('#c0c8d0')
+    colorRef.current.copy(cA).lerp(cB, eased)
+    if (meshRef.current) {
+      meshRef.current.material.color.copy(colorRef.current)
+      meshRef.current.material.metalness = 0.25 + eased * 0.6
+      meshRef.current.material.roughness = 0.45 - eased * 0.2
+      meshRef.current.rotation.y += 0.003
     }
   })
 
-  const noseGeo = useMemo(() => {
-    const pts = []
-    for (let i = 0; i <= 30; i++) {
-      const t = i / 30
-      const r = 0.02 + t * t * 0.28
-      pts.push(new THREE.Vector2(r, t * 2.2))
-    }
-    return new THREE.LatheGeometry(pts, 24)
-  }, [])
-
   return (
-    <group ref={groupRef} position={[0, -0.3, 0]}>
-      <mesh geometry={noseGeo} position={[-0.3, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+    <group position={[0, -0.1, 0]}>
+      <mesh
+        ref={meshRef}
+        geometry={geometry}
+        rotation={[0, 0, Math.PI / 2]}
+        position={[0.4, 0, 0]}
+      >
         <meshPhysicalMaterial
-          color="#c0c8d0"
-          metalness={0.9}
-          roughness={0.25}
-          envMapIntensity={1.5}
+          color="#00b4d8"
+          metalness={0.25}
+          roughness={0.4}
+          envMapIntensity={1.4}
         />
       </mesh>
 
-      <mesh position={[1.5, 0, 0]}>
-        <cylinderGeometry args={[0.3, 0.3, 2.4, 24]} />
-        <meshPhysicalMaterial
-          color="#d0d8e0"
-          metalness={0.8}
-          roughness={0.3}
-          envMapIntensity={1.0}
-        />
+      <mesh ref={labelRef} position={[-1.2, 0, 0]}>
+        <planeGeometry args={[0.001, 0.001]} />
+        <meshBasicMaterial transparent opacity={0} />
       </mesh>
-
-      <mesh position={[0.75, 0.12, 0]}>
-        <boxGeometry args={[0.4, 0.08, 0.25]} />
-        <meshPhysicalMaterial color="#1a1a3e" metalness={0.6} roughness={0.2} />
-      </mesh>
-
-      <mesh position={[0.3, 0, 0]}>
-        <cylinderGeometry args={[0.15, 0.18, 0.3, 12]} />
-        <meshPhysicalMaterial color="#0077b6" metalness={0.5} roughness={0.4} />
-      </mesh>
-
-      {[-0.24, -0.18, -0.12, 0.12, 0.18, 0.24].map((z, i) => (
-        <mesh key={i} position={[0.6 + i * 0.35, 0.08, z]}>
-          <boxGeometry args={[0.15, 0.02, 0.04]} />
-          <meshPhysicalMaterial color="#00b4d8" metalness={0.3} roughness={0.5} />
-        </mesh>
-      ))}
-
-      <mesh position={[2.8, 0, 0]}>
-        <cylinderGeometry args={[0.3, 0.28, 0.15, 24]} />
-        <meshPhysicalMaterial color="#c0c8d0" metalness={0.7} roughness={0.4} />
-      </mesh>
-
-      <group position={[2.4, -0.2, 0]}>
-        {[-0.12, 0, 0.12].map((z, i) => (
-          <mesh key={i} position={[0, 0, z]}>
-            <cylinderGeometry args={[0.04, 0.04, 0.06, 8]} />
-            <meshPhysicalMaterial color="#333" metalness={0.8} roughness={0.5} />
-          </mesh>
-        ))}
-      </group>
     </group>
   )
 }
@@ -122,12 +141,12 @@ function Scene() {
   return (
     <>
       <PerspectiveCamera makeDefault position={[4, 2, 6]} fov={45} />
-      <ambientLight intensity={0.6} />
+      <ambientLight intensity={0.55} />
       <directionalLight position={[5, 8, 5]} intensity={1.2} />
       <directionalLight position={[-3, 4, -5]} intensity={0.4} color="#0077b6" />
-      <pointLight position={[0, 2, 0]} intensity={0.3} color="#00b4d8" />
+      <pointLight position={[0, 2, 0]} intensity={0.4} color="#00b4d8" />
 
-      <ShinkansenModel />
+      <MorphingNose />
       <HeroParticles />
 
       <gridHelper args={[12, 20, '#1a1a3e', '#0a0a1a']} position={[0, -0.6, 0]} />
@@ -142,7 +161,6 @@ function Scene() {
         enablePan={false}
         maxPolarAngle={Math.PI / 3}
         minPolarAngle={Math.PI / 4}
-        autoRotate={false}
       />
     </>
   )
@@ -161,6 +179,22 @@ export default function Hero() {
       </div>
 
       <div className="absolute inset-0 bg-gradient-to-b from-dark/0 via-dark/30 to-dark" />
+
+      <div className="absolute top-1/2 left-8 -translate-y-1/2 hidden lg:flex flex-col gap-3 z-10">
+        <div className="px-3 py-2 rounded-lg glass border border-cyan-500/30">
+          <p className="text-[9px] font-mono text-cyan-300/80 uppercase tracking-wider">
+            Naturaleza
+          </p>
+          <p className="text-xs font-bold text-white">Pico Martín Pescador</p>
+        </div>
+        <div className="text-cyan-400/40 text-2xl text-center">↓</div>
+        <div className="px-3 py-2 rounded-lg glass border border-slate-300/20">
+          <p className="text-[9px] font-mono text-slate-300/80 uppercase tracking-wider">
+            Ingeniería
+          </p>
+          <p className="text-xs font-bold text-white">Nariz Shinkansen 500</p>
+        </div>
+      </div>
 
       <div className="relative z-10 text-center px-4 max-w-4xl mx-auto mt-16">
         <motion.div

@@ -4,6 +4,7 @@ import Navbar from './components/Navbar'
 import Hero from './components/Hero'
 import BirdSelector from './components/BirdSelector'
 import Simulation from './components/Simulation'
+import TierList from './components/TierList'
 import ComparisonCharts from './components/ComparisonCharts'
 import ScienceSection from './components/ScienceSection'
 import TrainComparison from './components/TrainComparison'
@@ -34,7 +35,12 @@ export default function App() {
         speedRange={speedRange}
         metrics={metrics}
       />
-      <ComparisonCharts comparisonData={comparisonData} />
+      <TierList selectedBird={selectedBird} onSelect={selectBird} />
+      <ComparisonCharts
+        comparisonData={comparisonData}
+        selectedBird={selectedBird}
+        onSelect={selectBird}
+      />
       <ScienceSection />
       <TrainComparison />
       <Footer />

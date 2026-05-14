@@ -1,7 +1,10 @@
 import { motion } from 'framer-motion'
 import SimulationCanvas from './SimulationCanvas'
 import SpeedSlider from './SpeedSlider'
+import MetricCard from './MetricCard'
+import BeakAnatomy from './BeakAnatomy'
 import { BIRDS } from '../data/mockData'
+import { getMetricsForBird } from '../utils/calculations'
 
 export default function Simulation({
   selectedBird,
@@ -11,39 +14,53 @@ export default function Simulation({
   metrics,
 }) {
   const bird = BIRDS[selectedBird]
+  const baseline = getMetricsForBird('kingfisher', speed)
 
-  const statCards = [
+  const cards = [
     {
-      label: 'Resistencia (mCd)',
-      value: (metrics.drag * 1000).toFixed(1),
+      key: 'drag',
+      label: 'Resistencia',
+      value: parseFloat((metrics.drag * 1000).toFixed(1)),
+      unit: 'mCd',
       color: bird.color,
-      unit: '',
-      good: metrics.drag < 0.08,
-      medium: metrics.drag >= 0.08 && metrics.drag < 0.18,
+      termKey: 'Cd',
+      gaugeMax: 250,
+      invertedGauge: true,
+      baseline: baseline.drag * 1000,
+      higherIsBetter: false,
     },
     {
-      label: 'Eficiencia energética',
-      value: metrics.efficiency.toFixed(1),
-      color: '#00e676',
+      key: 'eff',
+      label: 'Eficiencia',
+      value: parseFloat(metrics.efficiency.toFixed(1)),
       unit: '%',
-      good: metrics.efficiency > 80,
-      medium: metrics.efficiency > 50 && metrics.efficiency <= 80,
+      color: '#06d6a0',
+      termKey: 'eficiencia',
+      gaugeMax: 100,
+      baseline: baseline.efficiency,
+      higherIsBetter: true,
     },
     {
-      label: 'Ruido estimado',
-      value: metrics.noise.toFixed(1),
-      color: '#ff6b6b',
+      key: 'noise',
+      label: 'Ruido',
+      value: parseFloat(metrics.noise.toFixed(1)),
       unit: 'dB',
-      good: metrics.noise < 25,
-      medium: metrics.noise >= 25 && metrics.noise < 55,
+      color: '#ef476f',
+      gaugeMax: 100,
+      invertedGauge: true,
+      baseline: baseline.noise,
+      higherIsBetter: false,
     },
     {
-      label: 'Estabilidad flujo',
-      value: metrics.stability.toFixed(1),
-      color: '#48cae4',
+      key: 'stab',
+      label: 'Estabilidad',
+      value: parseFloat(metrics.stability.toFixed(1)),
       unit: '%',
-      good: metrics.stability > 80,
-      medium: metrics.stability > 50 && metrics.stability <= 80,
+      color: '#48cae4',
+      termKey: 'estabilidad',
+      gaugeMax: 100,
+      baseline: baseline.stability,
+      higherIsBetter: true,
     },
   ]
 
@@ -63,17 +80,19 @@ export default function Simulation({
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-6">
             <motion.div
               key={selectedBird + speed}
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.4 }}
               className="glass-strong overflow-hidden"
-              style={{ height: '500px' }}
+              style={{ height: '520px' }}
             >
               <SimulationCanvas birdId={selectedBird} speed={speed} />
             </motion.div>
+
+            <BeakAnatomy birdId={selectedBird} />
           </div>
 
           <div className="space-y-4">
@@ -83,14 +102,14 @@ export default function Simulation({
               animate={{ opacity: 1, x: 0 }}
               className="glass-strong p-5"
             >
-              <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center gap-3 mb-3">
                 <div
-                  className="w-3 h-3 rounded-full"
+                  className="w-3 h-3 rounded-full shrink-0"
                   style={{ backgroundColor: bird.color }}
                 />
-                <div>
-                  <h3 className="font-bold text-sm">{bird.name}</h3>
-                  <p className="text-[10px] text-white/40 font-mono uppercase tracking-wider">
+                <div className="min-w-0">
+                  <h3 className="font-bold text-sm truncate">{bird.name}</h3>
+                  <p className="text-[10px] text-white/40 font-mono uppercase tracking-wider truncate">
                     {bird.flowQuality}
                   </p>
                 </div>
@@ -100,18 +119,20 @@ export default function Simulation({
                 {bird.longDescription}
               </p>
 
-              <div className="space-y-3">
-                {statCards.map((stat) => (
-                  <div key={stat.label} className="flex items-center justify-between">
-                    <span className="text-xs text-white/50">{stat.label}</span>
-                    <span
-                      className="text-sm font-bold font-mono"
-                      style={{ color: stat.color }}
-                    >
-                      {stat.value}
-                      {stat.unit}
-                    </span>
-                  </div>
+              <div className="grid grid-cols-2 gap-2">
+                {cards.map((c) => (
+                  <MetricCard
+                    key={c.key}
+                    label={c.label}
+                    value={c.value}
+                    unit={c.unit}
+                    color={c.color}
+                    termKey={c.termKey}
+                    gaugeMax={c.gaugeMax}
+                    invertedGauge={c.invertedGauge}
+                    baseline={c.baseline}
+                    higherIsBetter={c.higherIsBetter}
+                  />
                 ))}
               </div>
             </motion.div>

@@ -17,7 +17,7 @@ export function useSimulation() {
   const comparisonData = useMemo(() => generateComparisonData(speed), [speed])
 
   const selectBird = useCallback((birdId) => {
-    if (BIRD_IDS.includes(birdId)) {
+    if (BIRDS[birdId]) {
       setSelectedBird(birdId)
     }
   }, [])

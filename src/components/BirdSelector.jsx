@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
-import { BIRDS, BIRD_IDS } from '../data/mockData'
+import { BIRDS, FEATURED_BIRD_IDS } from '../data/mockData'
+import BirdLibrary from './BirdLibrary'
 
 const birdIcons = {
   kingfisher: (
@@ -57,8 +58,8 @@ export default function BirdSelector({ selectedBird, onSelect, birdList }) {
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {BIRD_IDS.map((id, index) => {
+        <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-6 items-stretch">
+          {FEATURED_BIRD_IDS.map((id, index) => {
             const bird = BIRDS[id]
             const isSelected = selectedBird === id
             return (
@@ -142,6 +143,10 @@ export default function BirdSelector({ selectedBird, onSelect, birdList }) {
               </motion.div>
             )
           })}
+
+          <div className="md:col-span-3 xl:col-span-1">
+            <BirdLibrary selectedBird={selectedBird} onSelect={onSelect} />
+          </div>
         </div>
       </div>
     </section>

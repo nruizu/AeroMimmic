@@ -1,8 +1,9 @@
-import { useRef, useMemo } from 'react'
+import { useRef, useMemo, useState } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, PerspectiveCamera } from '@react-three/drei'
 import * as THREE from 'three'
 import { BIRDS } from '../data/mockData'
+import SimulationHUD from './SimulationHUD'
 
 const PARTICLE_COUNT = 1500
 const CURVE_SAMPLES = 140
@@ -99,31 +100,82 @@ function getFlowLineColor(turb, speed, idx) {
   return new THREE.Color().setHSL(0.56 - 0.45 * 0.15 - (heat - 0.45) * 0.55, 0.85, 0.5)
 }
 
-function BeakModel({ birdId }) {
-  const meshRef = useRef(null)
+function pressureToColor(p) {
+  const hue = 0.66 * (1 - Math.max(0, Math.min(1, p)))
+  return new THREE.Color().setHSL(hue, 0.95, 0.55)
+}
+
+function BeakModel({ birdId, showPressure }) {
   const bird = BIRDS[birdId]
 
   const { geometry, offset } = useMemo(() => {
     const profile = bird.beakProfile
+    const totalLen = profile[profile.length - 1][0]
+    const maxRad = Math.max(...profile.map(([, r]) => r))
+    const turb = bird.turbulenceFactor
+
     const pts = profile.map(([x, y]) => new THREE.Vector2(y * RADIUS_SCALE, x * LENGTH_SCALE))
-    const geo = new THREE.LatheGeometry(pts, 32)
+    const geo = new THREE.LatheGeometry(pts, 48)
     geo.computeVertexNormals()
-    const len = profile[profile.length - 1][0] * LENGTH_SCALE
-    return { geometry: geo, offset: len / 2 }
-  }, [birdId])
+
+    const posAttr = geo.attributes.position
+    const colors = new Float32Array(posAttr.count * 3)
+    const scaledLen = totalLen * LENGTH_SCALE
+
+    for (let i = 0; i < posAttr.count; i++) {
+      const vy = posAttr.getY(i)
+      const vx = posAttr.getX(i)
+      const vz = posAttr.getZ(i)
+      const r = Math.sqrt(vx * vx + vz * vz)
+      const lengthCoord = vy / LENGTH_SCALE
+      const tipFrac = lengthCoord / Math.max(0.0001, totalLen)
+
+      const rNorm = r / (maxRad * RADIUS_SCALE + 0.0001)
+      let p = 1 - rNorm * rNorm
+      if (tipFrac < 0.06) {
+        p = 1.0
+      }
+      if (tipFrac > 0.85) {
+        const tailF = (tipFrac - 0.85) / 0.15
+        p = p * (1 - tailF * 0.6) + 0.15 * tailF
+      }
+      p = p * (1 - turb * 0.25)
+
+      const c = pressureToColor(p)
+      colors[i * 3] = c.r
+      colors[i * 3 + 1] = c.g
+      colors[i * 3 + 2] = c.b
+    }
+
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+    return { geometry: geo, offset: scaledLen / 2 }
+  }, [bird])
 
   return (
-    <mesh ref={meshRef} geometry={geometry} position={[offset, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-      <meshPhysicalMaterial
-        color={bird.color}
-        metalness={0.0}
-        roughness={0.15}
-        transparent
-        opacity={0.3}
-        side={THREE.DoubleSide}
-        envMapIntensity={0.8}
-        depthWrite={false}
-      />
+    <mesh geometry={geometry} position={[offset, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+      {showPressure ? (
+        <meshStandardMaterial
+          vertexColors
+          metalness={0.1}
+          roughness={0.45}
+          transparent
+          opacity={0.92}
+          side={THREE.DoubleSide}
+          emissive="#000"
+          emissiveIntensity={0.0}
+        />
+      ) : (
+        <meshPhysicalMaterial
+          color={bird.color}
+          metalness={0.0}
+          roughness={0.15}
+          transparent
+          opacity={0.35}
+          side={THREE.DoubleSide}
+          envMapIntensity={0.8}
+          depthWrite={false}
+        />
+      )}
     </mesh>
   )
 }
@@ -262,10 +314,10 @@ function ParticleSystem({ birdId, speed }) {
   return (
     <points ref={pointsRef} geometry={geometry}>
       <pointsMaterial
-        size={0.035}
+        size={0.04}
         vertexColors
         transparent
-        opacity={0.75}
+        opacity={0.85}
         sizeAttenuation
         blending={THREE.AdditiveBlending}
         depthWrite={false}
@@ -343,18 +395,26 @@ function GridFloor() {
 }
 
 export default function SimulationCanvas({ birdId, speed }) {
+  const [viz, setViz] = useState({
+    pressure: true,
+    streamlines: true,
+    particles: true,
+    wake: true,
+  })
+  const toggle = (key) => setViz((v) => ({ ...v, [key]: !v[key] }))
+
   return (
-    <div className="w-full h-full rounded-xl overflow-hidden">
+    <div className="w-full h-full rounded-xl overflow-hidden relative">
       <Canvas dpr={[1, 1.5]} gl={{ antialias: true, alpha: true }}>
         <PerspectiveCamera makeDefault position={[0, 1.8, 5.5]} fov={38} />
         <ambientLight intensity={0.35} />
         <directionalLight position={[3, 6, 4]} intensity={0.9} />
         <directionalLight position={[-3, 1, -4]} intensity={0.25} color="#0077b6" />
 
-        <BeakModel birdId={birdId} />
-        <FlowLines birdId={birdId} speed={speed} />
-        <ParticleSystem birdId={birdId} speed={speed} />
-        <TurbulenceViz birdId={birdId} />
+        <BeakModel birdId={birdId} showPressure={viz.pressure} />
+        {viz.streamlines && <FlowLines birdId={birdId} speed={speed} />}
+        {viz.particles && <ParticleSystem birdId={birdId} speed={speed} />}
+        {viz.wake && <TurbulenceViz birdId={birdId} />}
         <GridFloor />
 
         <OrbitControls
@@ -366,6 +426,13 @@ export default function SimulationCanvas({ birdId, speed }) {
           target={[0, 0, 0]}
         />
       </Canvas>
+
+      <SimulationHUD
+        birdId={birdId}
+        speed={speed}
+        viz={viz}
+        onToggle={toggle}
+      />
     </div>
   )
 }

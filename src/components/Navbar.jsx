@@ -5,6 +5,7 @@ const links = [
   { label: 'Inicio', href: '#hero' },
   { label: 'Aves', href: '#selector' },
   { label: 'Simulación', href: '#simulacion' },
+  { label: 'Ranking', href: '#ranking' },
   { label: 'Resultados', href: '#resultados' },
   { label: 'Ciencia', href: '#ciencia' },
   { label: 'Comparación', href: '#comparacion' },

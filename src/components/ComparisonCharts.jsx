@@ -4,7 +4,106 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend,
 } from 'recharts'
-import { BIRDS, BIRD_IDS } from '../data/mockData'
+import { BIRDS, FEATURED_BIRD_IDS as BIRD_IDS, BIRD_IDS as ALL_BIRD_IDS } from '../data/mockData'
+
+function Heatmap({ onSelect, selectedBird }) {
+  const metrics = useMemo(
+    () => [
+      { key: 'dragCoefficient', label: 'Cd', lower: true },
+      { key: 'efficiency', label: 'Eficiencia', lower: false },
+      { key: 'noiseLevel', label: 'Ruido', lower: true },
+      { key: 'flowStability', label: 'Estabilidad', lower: false },
+    ],
+    [],
+  )
+
+  const normalized = useMemo(() => {
+    const stats = {}
+    for (const m of metrics) {
+      const vals = ALL_BIRD_IDS.map((id) => BIRDS[id][m.key])
+      stats[m.key] = { min: Math.min(...vals), max: Math.max(...vals) }
+    }
+    return ALL_BIRD_IDS.map((id) => {
+      const bird = BIRDS[id]
+      const cells = metrics.map((m) => {
+        const { min, max } = stats[m.key]
+        const span = max - min || 1
+        const norm = (bird[m.key] - min) / span
+        const score = m.lower ? 1 - norm : norm
+        return { key: m.key, label: m.label, raw: bird[m.key], score }
+      })
+      return { id, name: bird.name, color: bird.color, cells }
+    })
+  }, [metrics])
+
+  const scoreToColor = (s) => {
+    const hue = 0.33 * s
+    const light = 35 + s * 25
+    return `hsl(${hue * 360},80%,${light}%)`
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs border-separate border-spacing-1 min-w-[520px]">
+        <thead>
+          <tr className="text-white/40 font-mono uppercase text-[9px] tracking-wider">
+            <th className="text-left py-1 px-2">Ave</th>
+            {normalized[0].cells.map((c) => (
+              <th key={c.key} className="px-1 text-center">{c.label}</th>
+            ))}
+            <th className="px-2 text-right">Σ score</th>
+          </tr>
+        </thead>
+        <tbody>
+          {normalized
+            .map((row) => ({
+              ...row,
+              total: row.cells.reduce((a, b) => a + b.score, 0),
+            }))
+            .sort((a, b) => b.total - a.total)
+            .map((row, idx) => (
+              <tr
+                key={row.id}
+                onClick={() => onSelect && onSelect(row.id)}
+                className={`cursor-pointer transition ${
+                  selectedBird === row.id ? 'ring-1 ring-primary/40 rounded' : ''
+                }`}
+              >
+                <td className="py-1 px-2 font-mono text-[10px]">
+                  <span className="text-white/30 mr-1">{idx + 1}.</span>
+                  <span style={{ color: row.color }}>{row.name}</span>
+                </td>
+                {row.cells.map((c) => (
+                  <td
+                    key={c.key}
+                    className="text-center"
+                    title={`${c.label}: ${c.raw} (score ${c.score.toFixed(2)})`}
+                  >
+                    <div
+                      className="mx-auto h-7 rounded flex items-center justify-center text-[9px] font-mono font-bold"
+                      style={{
+                        backgroundColor: scoreToColor(c.score),
+                        color: c.score > 0.5 ? '#062' : '#fff',
+                        minWidth: 44,
+                      }}
+                    >
+                      {c.raw}
+                    </div>
+                  </td>
+                ))}
+                <td className="text-right px-2 font-mono text-[10px]" style={{ color: row.color }}>
+                  {row.total.toFixed(2)}
+                </td>
+              </tr>
+            ))}
+        </tbody>
+      </table>
+      <p className="text-[9px] text-white/30 mt-3 font-mono leading-snug">
+        Heatmap normalizado: verde = mejor relativo · rojo = peor relativo · clic en una fila para simular esa ave.
+      </p>
+    </div>
+  )
+}
 
 const COLORS = {
   kingfisher: '#00b4d8',
@@ -171,7 +270,7 @@ function LineChartSummary() {
   )
 }
 
-export default function ComparisonCharts({ comparisonData }) {
+export default function ComparisonCharts({ comparisonData, selectedBird, onSelect }) {
   const [chartMode, setChartMode] = useState('bar')
 
   return (
@@ -244,8 +343,9 @@ export default function ComparisonCharts({ comparisonData }) {
 
         <div className="flex gap-2 mb-6">
           {[
-            { key: 'bar', label: 'Barras' },
-            { key: 'radar', label: 'Radar' },
+            { key: 'bar', label: 'Barras (3 aves)' },
+            { key: 'radar', label: 'Radar (3 aves)' },
+            { key: 'heatmap', label: 'Heatmap (15 aves)' },
           ].map((m) => (
             <button
               key={m.key}
@@ -266,12 +366,20 @@ export default function ComparisonCharts({ comparisonData }) {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           className="glass-strong p-6"
-          style={{ height: 400 }}
+          style={{ minHeight: 400 }}
         >
-          {chartMode === 'bar' ? (
-            <BarChartView data={comparisonData} />
-          ) : (
-            <RadarChartView data={comparisonData} />
+          {chartMode === 'bar' && (
+            <div style={{ height: 380 }}>
+              <BarChartView data={comparisonData} />
+            </div>
+          )}
+          {chartMode === 'radar' && (
+            <div style={{ height: 380 }}>
+              <RadarChartView data={comparisonData} />
+            </div>
+          )}
+          {chartMode === 'heatmap' && (
+            <Heatmap selectedBird={selectedBird} onSelect={onSelect} />
           )}
         </motion.div>
 
